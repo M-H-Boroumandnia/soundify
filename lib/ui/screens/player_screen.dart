@@ -11,6 +11,8 @@ import '../theme.dart';
 import '../widgets/add_to_playlist_sheet.dart';
 import '../widgets/cover_image.dart';
 import '../widgets/track_tile.dart';
+import '../widgets/auto_text.dart';
+import '../widgets/equalizer_sheet.dart';
 
 void openPlayerScreen(BuildContext context) {
   Navigator.of(context, rootNavigator: true).push(PageRouteBuilder<void>(
@@ -115,17 +117,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          AutoText(
                             track.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           const SizedBox(height: 4),
-                          Text(
+                          AutoText(
                             track.album.isEmpty ? track.artist : '${track.artist} • ${track.album}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
                           ),
                         ],
@@ -188,10 +186,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 alignment: Alignment.center,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
                     child: LinearProgressIndicator(
                       value: max > 0 ? buffered / max : 0,
-                      minHeight: 3,
+                      minHeight: 4,
+                      borderRadius: BorderRadius.circular(2),
                       color: AppColors.textSecondary.withValues(alpha: 0.35),
                       backgroundColor: AppColors.surfaceHigh,
                     ),
@@ -309,10 +308,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _showEqualizer(BuildContext context, PlayerController player) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (_) => _EqualizerSheet(equalizer: player.equalizer),
-    );
+    showEqualizerSheet(context, player.equalizer);
   }
 }
 
@@ -381,97 +377,6 @@ class _VisualizerState extends State<_Visualizer> with SingleTickerProviderState
           }),
         );
       },
-    );
-  }
-}
-
-class _EqualizerSheet extends StatelessWidget {
-  final AndroidEqualizer equalizer;
-
-  const _EqualizerSheet({required this.equalizer});
-
-  String _label(double hz) => hz >= 1000 ? '${(hz / 1000).toStringAsFixed(1)}k' : '${hz.round()}';
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            StreamBuilder<bool>(
-              stream: equalizer.enabledStream,
-              builder: (context, snapshot) => SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('اکولایزر', style: textTheme.titleMedium),
-                subtitle: const Text('تنظیم فرکانس‌های صدا',
-                    style: TextStyle(color: AppColors.textSecondary)),
-                value: snapshot.data ?? false,
-                onChanged: equalizer.setEnabled,
-              ),
-            ),
-            const SizedBox(height: 8),
-            FutureBuilder<AndroidEqualizerParameters>(
-              future: equalizer.parameters,
-              builder: (context, snapshot) {
-                final params = snapshot.data;
-                if (snapshot.hasError) {
-                  return const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text('اکولایزر روی این دستگاه پشتیبانی نمی‌شود'),
-                  );
-                }
-                if (params == null) {
-                  return const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text('ابتدا یک آهنگ را پخش کنید',
-                        style: TextStyle(color: AppColors.textSecondary)),
-                  );
-                }
-                return SizedBox(
-                  height: 240,
-                  child: Directionality(
-                    textDirection: TextDirection.ltr,
-                    child: Row(
-                      children: [
-                        for (final band in params.bands)
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: StreamBuilder<double>(
-                                    stream: band.gainStream,
-                                    builder: (context, snapshot) => RotatedBox(
-                                      quarterTurns: -1,
-                                      child: Slider(
-                                        min: params.minDecibels,
-                                        max: params.maxDecibels,
-                                        value: (snapshot.data ?? band.gain)
-                                            .clamp(params.minDecibels, params.maxDecibels),
-                                        onChanged: band.setGain,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  _label(band.centerFrequency),
-                                  style: textTheme.labelSmall
-                                      ?.copyWith(color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
