@@ -19,6 +19,15 @@ class PlayerController extends ChangeNotifier {
   final AndroidEqualizer equalizer = AndroidEqualizer();
   late final AudioPlayer _player = AudioPlayer(
     audioPipeline: AudioPipeline(androidAudioEffects: [equalizer]),
+    audioLoadConfiguration: const AudioLoadConfiguration(
+      androidLoadControl: AndroidLoadControl(
+        minBufferDuration: Duration(seconds: 15),
+        maxBufferDuration: Duration(seconds: 60),
+        bufferForPlaybackDuration: Duration(milliseconds: 500),
+        bufferForPlaybackAfterRebufferDuration: Duration(seconds: 2),
+        prioritizeTimeOverSizeThresholds: true,
+      ),
+    ),
   );
 
   final List<StreamSubscription<dynamic>> _subs = [];
@@ -86,7 +95,7 @@ class PlayerController extends ChangeNotifier {
         Iterable.generate(tracks.length)
             .every((i) => _queue[i].id == tracks[i].id);
     if (sameQueue) {
-      await _player.seek(Duration.zero, index: startIndex);
+      unawaited(_player.seek(Duration.zero, index: startIndex));
       unawaited(_player.play());
       return;
     }
@@ -95,12 +104,12 @@ class PlayerController extends ChangeNotifier {
     _index = startIndex;
     notifyListeners();
     try {
-      await _player.setAudioSources(
+      final loading = _player.setAudioSources(
         _queue.map(_toSource).toList(),
         initialIndex: startIndex,
-        preload: true,
       );
       unawaited(_player.play());
+      await loading;
     } on PlayerException catch (e) {
       _error = e.message ?? 'خطا در پخش آهنگ';
       notifyListeners();
