@@ -93,3 +93,18 @@ class _MessageView extends StatelessWidget {
         ),
       );
 }
+
+class FadeSwitcher extends StatelessWidget {
+  final Object state;
+  final Widget child;
+
+  const FadeSwitcher({super.key, required this.state, required this.child});
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+        duration: const Duration(milliseconds: 280),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: KeyedSubtree(key: ValueKey(state), child: child),
+      );
+}

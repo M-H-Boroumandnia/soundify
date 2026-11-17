@@ -91,21 +91,23 @@ class _SearchScreenState extends State<SearchScreen> {
           Expanded(
             child: ListenableBuilder(
               listenable: _results,
-              builder: (context, _) => switch (_results.state) {
-                LoadState.idle => const EmptyView(
+              builder: (context, _) => FadeSwitcher(
+                state: _results.state,
+                child: switch (_results.state) {
+                  LoadState.idle => const EmptyView(
                     message: 'آهنگ یا خواننده مورد نظر خود را جست‌وجو کنید',
                     icon: Icons.manage_search_rounded,
                   ),
-                LoadState.loading => const LoadingView(),
-                LoadState.error => ErrorView(
+                  LoadState.loading => const LoadingView(),
+                  LoadState.error => ErrorView(
                     message: _results.error ?? 'خطا',
                     onRetry: _results.refresh,
                   ),
-                LoadState.empty => EmptyView(
+                  LoadState.empty => EmptyView(
                     message: 'نتیجه‌ای برای «$_query» یافت نشد',
                     icon: Icons.search_off_rounded,
                   ),
-                LoadState.loaded => ListView.builder(
+                  LoadState.loaded => ListView.builder(
                     controller: _scroll,
                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     itemCount: _results.items.length + (_results.hasMore ? 1 : 0),
@@ -113,13 +115,12 @@ class _SearchScreenState extends State<SearchScreen> {
                       if (i >= _results.items.length) return const LoadingView();
                       return TrackTile(
                         track: _results.items[i],
-                        onTap: () => context
-                            .read<PlayerController>()
-                            .playTracks(_results.items, i),
+                        onTap: () => context.read<PlayerController>().playTracks(_results.items, i),
                       );
                     },
                   ),
-              },
+                },
+              ),
             ),
           ),
         ],

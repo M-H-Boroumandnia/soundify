@@ -5,6 +5,7 @@ import '../../state/player_controller.dart';
 import '../screens/player_screen.dart';
 import '../theme.dart';
 import 'cover_image.dart';
+import 'auto_text.dart';
 
 class MiniPlayer extends StatefulWidget {
   const MiniPlayer({super.key});
@@ -14,8 +15,7 @@ class MiniPlayer extends StatefulWidget {
 }
 
 class _MiniPlayerState extends State<MiniPlayer> {
-  late final Stream<PositionData> _position =
-      context.read<PlayerController>().positionStream;
+  late final Stream<PositionData> _position = context.read<PlayerController>().positionStream;
 
   @override
   Widget build(BuildContext context) {
@@ -27,75 +27,84 @@ class _MiniPlayerState extends State<MiniPlayer> {
       curve: Curves.easeOut,
       child: track == null
           ? const SizedBox(width: double.infinity)
-          : Material(
-              color: AppColors.surfaceHigh,
-              child: InkWell(
-                onTap: () => openPlayerScreen(context),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    StreamBuilder<PositionData>(
-                      stream: _position,
-                      builder: (context, snapshot) {
-                        final data = snapshot.data;
-                        final total = data?.duration.inMilliseconds ?? 0;
-                        final value = total > 0
-                            ? (data!.position.inMilliseconds / total).clamp(0.0, 1.0)
-                            : 0.0;
-                        return LinearProgressIndicator(
-                          value: value,
-                          minHeight: 2,
-                          color: AppColors.primary,
-                          backgroundColor: Colors.transparent,
-                        );
-                      },
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
-                      child: Row(
-                        children: [
-                          Hero(
-                            tag: 'cover-${track.id}',
-                            child: CoverImage(url: track.coverUrl, size: 44, radius: 6),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  track.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                Text(
-                                  track.artist,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: 'قبلی',
-                            onPressed: player.previous,
-                            icon: const Icon(Icons.skip_previous_rounded),
-                          ),
-                          _PlayPauseButton(player: player),
-                          IconButton(
-                            tooltip: 'بعدی',
-                            onPressed: player.hasNext ? player.next : null,
-                            icon: const Icon(Icons.skip_next_rounded),
-                          ),
-                        ],
+          : Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+              child: Material(
+                color: AppColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(16),
+                clipBehavior: Clip.antiAlias,
+                elevation: 6,
+                shadowColor: Colors.black,
+                child: InkWell(
+                  onTap: () => openPlayerScreen(context),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      StreamBuilder<PositionData>(
+                        stream: _position,
+                        builder: (context, snapshot) {
+                          final data = snapshot.data;
+                          final total = data?.duration.inMilliseconds ?? 0;
+                          final value = total > 0
+                              ? (data!.position.inMilliseconds / total).clamp(0.0, 1.0)
+                              : 0.0;
+                          return LinearProgressIndicator(
+                            value: value,
+                            minHeight: 2,
+                            color: AppColors.primary,
+                            backgroundColor: Colors.transparent,
+                          );
+                        },
                       ),
-                    ),
-                  ],
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                        child: Row(
+                          children: [
+                            Hero(
+                              tag: 'cover-${track.id}',
+                              child: CoverImage(url: track.coverUrl, size: 44, radius: 6),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  AutoText(
+                                    track.title,
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  AutoText(
+                                    track.artist,
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Directionality(
+                              textDirection: TextDirection.ltr,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    tooltip: 'قبلی',
+                                    onPressed: player.previous,
+                                    icon: const Icon(Icons.skip_previous_rounded),
+                                  ),
+                                  _PlayPauseButton(player: player),
+                                  IconButton(
+                                    tooltip: 'بعدی',
+                                    onPressed: player.hasNext ? player.next : null,
+                                    icon: const Icon(Icons.skip_next_rounded),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -123,10 +132,7 @@ class _PlayPauseButton extends StatelessWidget {
     return IconButton(
       tooltip: player.isPlaying ? 'توقف' : 'پخش',
       onPressed: player.togglePlay,
-      icon: Icon(
-        player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-        size: 30,
-      ),
+      icon: Icon(player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 30),
     );
   }
 }

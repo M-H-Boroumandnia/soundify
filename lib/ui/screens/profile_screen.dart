@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/security/device_security.dart';
 import '../../state/auth_provider.dart';
 import '../theme.dart';
+import '../widgets/auto_text.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -63,7 +64,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(title: const Text('پروفایل')),
       body: RefreshIndicator(
         onRefresh: () async {
-          setState(() => _security = context.read<DeviceSecurityService>().check(force: true));
+          final security = context.read<DeviceSecurityService>().check(force: true);
+          setState(() {
+            _security = security;
+          });
           await auth.refreshUser();
         },
         child: ListView(
@@ -186,11 +190,23 @@ class _InfoRow extends StatelessWidget {
   const _InfoRow({required this.icon, required this.label, required this.value});
 
   @override
-  Widget build(BuildContext context) => ListTile(
-        leading: Icon(icon, color: AppColors.textSecondary),
-        title: Text(label, style: const TextStyle(color: AppColors.textSecondary)),
-        trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-      );
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return ListTile(
+      leading: Icon(icon, color: AppColors.textSecondary),
+      title: Text(
+        label,
+        style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+      ),
+      subtitle: AutoText(
+        value.isEmpty ? '-' : value,
+        style: textTheme.bodyLarge?.copyWith(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
 }
 
 class _DeviceSecurityTile extends StatelessWidget {

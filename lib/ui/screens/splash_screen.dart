@@ -37,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _decide() async {
     final prefs = context.read<AppPrefs>();
     final auth = context.read<AuthProvider>();
-    await Future<void>.delayed(const Duration(milliseconds: 1200));
+    final minDelay = Future<void>.delayed(const Duration(milliseconds: 1100));
 
     Widget next;
     if (!prefs.onboardingSeen) {
@@ -54,28 +54,57 @@ class _SplashScreenState extends State<SplashScreen>
     } else {
       next = const LoginScreen();
     }
+    await minDelay;
     if (!mounted) return;
     Navigator.of(context).pushReplacement(PageRouteBuilder<void>(
       pageBuilder: (_, _, _) => next,
       transitionsBuilder: (_, animation, _, child) =>
           FadeTransition(opacity: animation, child: child),
-      transitionDuration: const Duration(milliseconds: 400),
+      transitionDuration: const Duration(milliseconds: 450),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
+    final fade = CurvedAnimation(parent: _anim, curve: const Interval(0.3, 1, curve: Curves.easeOut));
+    final pulse = CurvedAnimation(parent: _anim, curve: Curves.easeOutBack);
     return Scaffold(
-      body: Center(
-        child: FadeTransition(
-          opacity: CurvedAnimation(parent: _anim, curve: Curves.easeOut),
-          child: ScaleTransition(
-            scale: Tween(begin: 0.85, end: 1.0).animate(
-              CurvedAnimation(parent: _anim, curve: Curves.easeOutBack),
-            ),
-            child: const AppLogo(size: 110),
+      body: Stack(
+        alignment: Alignment.center,
+        children: [
+          ScaleTransition(
+            scale: Tween(begin: 0.9, end: 1.0).animate(pulse),
+            child: const AppLogo(size: 104, showName: false),
           ),
-        ),
+          Align(
+            alignment: const Alignment(0, 0.24),
+            child: FadeTransition(
+              opacity: fade,
+              child: SlideTransition(
+                position: Tween(begin: const Offset(0, 0.4), end: Offset.zero).animate(fade),
+                child: Text(
+                  'Soundify',
+                  textDirection: TextDirection.ltr,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 48,
+            child: FadeTransition(
+              opacity: fade,
+              child: const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

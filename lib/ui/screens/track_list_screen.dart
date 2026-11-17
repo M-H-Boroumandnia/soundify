@@ -46,11 +46,13 @@ class _TrackListScreenState extends State<TrackListScreen> {
       appBar: AppBar(title: Text(widget.title)),
       body: ListenableBuilder(
         listenable: _paged,
-        builder: (context, _) => switch (_paged.state) {
-          LoadState.idle || LoadState.loading => const LoadingView(),
-          LoadState.error => ErrorView(message: _paged.error ?? 'خطا', onRetry: _paged.refresh),
-          LoadState.empty => const EmptyView(message: 'آهنگی یافت نشد'),
-          LoadState.loaded => RefreshIndicator(
+        builder: (context, _) => FadeSwitcher(
+          state: _paged.state,
+          child: switch (_paged.state) {
+            LoadState.idle || LoadState.loading => const LoadingView(),
+            LoadState.error => ErrorView(message: _paged.error ?? 'خطا', onRetry: _paged.refresh),
+            LoadState.empty => const EmptyView(message: 'آهنگی یافت نشد'),
+            LoadState.loaded => RefreshIndicator(
               onRefresh: _paged.refresh,
               child: ListView.builder(
                 controller: _scroll,
@@ -64,7 +66,8 @@ class _TrackListScreenState extends State<TrackListScreen> {
                 },
               ),
             ),
-        },
+          },
+        ),
       ),
     );
   }

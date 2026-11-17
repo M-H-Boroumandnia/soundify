@@ -18,16 +18,23 @@ class ShellScreen extends StatefulWidget {
   State<ShellScreen> createState() => _ShellScreenState();
 }
 
-class _ShellScreenState extends State<ShellScreen> {
-  static const _tabs = <Widget>[
-    HomeScreen(),
-    SearchScreen(),
-    LibraryScreen(),
-    ProfileScreen(),
-  ];
+class _ShellScreenState extends State<ShellScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _fade = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 260),
+    value: 1,
+  );
+
+  static const _tabs = <Widget>[HomeScreen(), SearchScreen(), LibraryScreen(), ProfileScreen()];
 
   final _navigatorKeys = List.generate(_tabs.length, (_) => GlobalKey<NavigatorState>());
   int _index = 0;
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -54,8 +61,13 @@ class _ShellScreenState extends State<ShellScreen> {
     if (index == _index) {
       _navigatorKeys[index].currentState?.popUntil((r) => r.isFirst);
     } else {
-      setState(() => _index = index);
+      _switchTo(index);
     }
+  }
+
+  void _switchTo(int index) {
+    setState(() => _index = index);
+    _fade.forward(from: 0);
   }
 
   void _handleBack(bool didPop, Object? _) {
@@ -64,7 +76,7 @@ class _ShellScreenState extends State<ShellScreen> {
     if (nav != null && nav.canPop()) {
       nav.pop();
     } else if (_index != 0) {
-      setState(() => _index = 0);
+      _switchTo(0);
     }
   }
 
@@ -82,15 +94,18 @@ class _ShellScreenState extends State<ShellScreen> {
         body: Column(
           children: [
             Expanded(
-              child: IndexedStack(
-                index: _index,
-                children: [
-                  for (var i = 0; i < _tabs.length; i++)
-                    Navigator(
-                      key: _navigatorKeys[i],
-                      onGenerateRoute: (_) => MaterialPageRoute<void>(builder: (_) => _tabs[i]),
-                    ),
-                ],
+              child: FadeTransition(
+                opacity: CurvedAnimation(parent: _fade, curve: Curves.easeOut),
+                child: IndexedStack(
+                  index: _index,
+                  children: [
+                    for (var i = 0; i < _tabs.length; i++)
+                      Navigator(
+                        key: _navigatorKeys[i],
+                        onGenerateRoute: (_) => MaterialPageRoute<void>(builder: (_) => _tabs[i]),
+                      ),
+                  ],
+                ),
               ),
             ),
             const MiniPlayer(),
@@ -105,10 +120,7 @@ class _ShellScreenState extends State<ShellScreen> {
               selectedIcon: Icon(Icons.home_rounded),
               label: 'خانه',
             ),
-            NavigationDestination(
-              icon: Icon(Icons.search_rounded),
-              label: 'جست‌وجو',
-            ),
+            NavigationDestination(icon: Icon(Icons.search_rounded), label: 'جست‌وجو'),
             NavigationDestination(
               icon: Icon(Icons.library_music_outlined),
               selectedIcon: Icon(Icons.library_music_rounded),

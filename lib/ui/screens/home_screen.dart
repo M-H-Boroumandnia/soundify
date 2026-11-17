@@ -14,6 +14,7 @@ import '../widgets/cover_image.dart';
 import '../widgets/state_views.dart';
 import '../widgets/track_tile.dart';
 import 'track_list_screen.dart';
+import '../widgets/auto_text.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -84,8 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (t.artist.isEmpty) continue;
       counts[t.artist] = (counts[t.artist] ?? 0) + 1;
     }
-    final sorted = counts.keys.toList()
-      ..sort((a, b) => counts[b]!.compareTo(counts[a]!));
+    final sorted = counts.keys.toList()..sort((a, b) => counts[b]!.compareTo(counts[a]!));
     return sorted.take(10).toList();
   }
 
@@ -128,12 +128,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader(String? name) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-        child: Text(
-          name == null ? _greeting : '$_greeting، $name',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-        ),
-      );
+    padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+    child: Text(
+      name == null ? _greeting : '$_greeting، $name',
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+    ),
+  );
 
   Widget _buildFeatured() {
     return Column(
@@ -142,11 +142,16 @@ class _HomeScreenState extends State<HomeScreen> {
         const _SectionTitle('منتخب‌ها'),
         SizedBox(
           height: 230,
-          child: switch (_featuredState) {
-            LoadState.idle || LoadState.loading => const LoadingView(),
-            LoadState.error => ErrorView(message: _featuredError ?? 'خطا', onRetry: _loadFeatured),
-            LoadState.empty => const EmptyView(message: 'آهنگ منتخبی وجود ندارد'),
-            LoadState.loaded => ListView.separated(
+          child: FadeSwitcher(
+            state: _featuredState,
+            child: switch (_featuredState) {
+              LoadState.idle || LoadState.loading => const LoadingView(),
+              LoadState.error => ErrorView(
+                message: _featuredError ?? 'خطا',
+                onRetry: _loadFeatured,
+              ),
+              LoadState.empty => const EmptyView(message: 'آهنگ منتخبی وجود ندارد'),
+              LoadState.loaded => ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _featured.length,
@@ -156,44 +161,43 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => context.read<PlayerController>().playTracks(_featured, i),
                 ),
               ),
-          },
+            },
+          ),
         ),
       ],
     );
   }
 
   Widget _buildCategories() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _SectionTitle('دسته‌بندی خوانندگان'),
-          SizedBox(
-            height: 44,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _artists.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final artist = _artists[i];
-                return ActionChip(
-                  label: Text(artist),
-                  avatar: const Icon(Icons.mic_rounded, size: 18),
-                  backgroundColor: AppColors.surfaceHigh,
-                  side: BorderSide.none,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                    builder: (_) => TrackListScreen(
-                      title: artist,
-                      loader: (page, token) =>
-                          _repo.tracksByArtist(artist, page: page, cancelToken: token),
-                    ),
-                  )),
-                );
-              },
-            ),
-          ),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const _SectionTitle('دسته‌بندی خوانندگان'),
+      SizedBox(
+        height: 40,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: _artists.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 10),
+          itemBuilder: (context, i) {
+            final artist = _artists[i];
+            return _ArtistPill(
+              name: artist,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => TrackListScreen(
+                    title: artist,
+                    loader: (page, token) =>
+                        _repo.tracksByArtist(artist, page: page, cancelToken: token),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    ],
+  );
 
   List<Widget> _buildAllTracks() {
     switch (_all.state) {
@@ -235,12 +239,12 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-        child: Text(
-          text,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-        ),
-      );
+    padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+    child: Text(
+      text,
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+    ),
+  );
 }
 
 class _FeaturedCard extends StatelessWidget {
@@ -252,8 +256,9 @@ class _FeaturedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
       child: SizedBox(
         width: 160,
         child: Column(
@@ -277,19 +282,84 @@ class _FeaturedCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
+            AutoText(
               track.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
-            Text(
+            AutoText(
               track.artist,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ArtistPill extends StatelessWidget {
+  final String name;
+  final VoidCallback onTap;
+
+  const _ArtistPill({required this.name, required this.onTap});
+
+  static const _palette = [
+    Color(0xFF1ED760),
+    Color(0xFF4DA3FF),
+    Color(0xFFFF7A59),
+    Color(0xFFB57BFF),
+    Color(0xFFFFC145),
+    Color(0xFF2ED3C6),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _palette[name.codeUnits.fold<int>(0, (a, b) => a + b) % _palette.length];
+    final initial = name.trim().isEmpty ? '?' : name.trim().substring(0, 1).toUpperCase();
+    final textTheme = Theme.of(context).textTheme;
+    return Material(
+      color: AppColors.surfaceHigh,
+      shape: StadiumBorder(side: BorderSide(color: color.withValues(alpha: 0.25))),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(4, 4, 14, 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [color, color.withValues(alpha: 0.6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Text(
+                  initial,
+                  style: textTheme.titleSmall?.copyWith(
+                    color: AppColors.background,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                name,
+                textDirection: detectDirection(name),
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  height: 1,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

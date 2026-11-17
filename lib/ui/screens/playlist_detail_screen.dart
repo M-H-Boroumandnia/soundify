@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/utils/formatters.dart';
 import '../../core/network/api_exception.dart';
 import '../../data/models/playlist.dart';
 import '../../data/models/track.dart';
@@ -11,6 +12,7 @@ import '../widgets/cover_image.dart';
 import '../widgets/state_views.dart';
 import '../widgets/track_tile.dart';
 import 'library_screen.dart';
+import '../widgets/auto_text.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final String playlistId;
@@ -106,8 +108,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   track: playlist.tracks[i],
                   onTap: () =>
                       context.read<PlayerController>().playTracks(playlist.tracks, i),
-                  extraActions: const [
-                    PopupMenuItem(value: 'remove', child: Text('حذف از این پلی‌لیست')),
+                  extraActions: [
+                    menuItem(
+                      'remove',
+                      Icons.playlist_remove_rounded,
+                      'حذف از این پلی‌لیست',
+                      danger: true,
+                    ),
                   ],
                   onExtraAction: (action) {
                     if (action == 'remove') _removeTrack(playlist, playlist.tracks[i]);
@@ -139,8 +146,9 @@ class _Header extends StatelessWidget {
             placeholderIcon: Icons.queue_music_rounded,
           ),
           const SizedBox(height: 16),
-          Text(
+          AutoText(
             playlist.name,
+            maxLines: 2,
             textAlign: TextAlign.center,
             style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
@@ -154,7 +162,7 @@ class _Header extends StatelessWidget {
           ],
           const SizedBox(height: 6),
           Text(
-            '${playlist.tracks.length} آهنگ',
+            '${toPersianDigits(playlist.tracks.length)} آهنگ',
             style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
           if (playlist.tracks.isNotEmpty) ...[

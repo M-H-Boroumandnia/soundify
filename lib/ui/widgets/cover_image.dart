@@ -30,14 +30,22 @@ class CoverImage extends StatelessWidget {
       borderRadius: BorderRadius.circular(radius),
       child: url == null || url!.isEmpty
           ? placeholder
-          : CachedNetworkImage(
-              imageUrl: url!,
+          : SizedBox(
               width: size,
               height: size,
-              fit: BoxFit.cover,
-              memCacheWidth: (size * 3).round(),
-              placeholder: (_, _) => placeholder,
-              errorWidget: (_, _, _) => placeholder,
+              child: Transform.scale(
+                scale: 1.04,
+                child: CachedNetworkImage(
+                  imageUrl: url!,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                  memCacheWidth: (size * 3).round(),
+                  fadeInDuration: const Duration(milliseconds: 220),
+                  placeholder: (_, _) => placeholder,
+                  errorWidget: (_, _, _) => placeholder,
+                ),
+              ),
             ),
     );
   }

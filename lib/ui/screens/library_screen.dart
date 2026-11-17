@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/utils/formatters.dart';
 import '../../data/models/playlist.dart';
 import '../../state/favorites_provider.dart';
 import '../../state/load_state.dart';
@@ -13,6 +14,7 @@ import '../widgets/playlist_form_dialog.dart';
 import '../widgets/state_views.dart';
 import '../widgets/track_tile.dart';
 import 'playlist_detail_screen.dart';
+import '../widgets/auto_text.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -109,14 +111,16 @@ class _PlaylistsTab extends StatelessWidget {
         icon: const Icon(Icons.add_rounded),
         label: const Text('پلی‌لیست جدید'),
       ),
-      body: switch (provider.state) {
-        LoadState.idle || LoadState.loading => const LoadingView(),
-        LoadState.error => ErrorView(message: provider.error ?? 'خطا', onRetry: provider.load),
-        LoadState.empty => const EmptyView(
+      body: FadeSwitcher(
+        state: provider.state,
+        child: switch (provider.state) {
+          LoadState.idle || LoadState.loading => const LoadingView(),
+          LoadState.error => ErrorView(message: provider.error ?? 'خطا', onRetry: provider.load),
+          LoadState.empty => const EmptyView(
             message: 'هنوز پلی‌لیستی نساخته‌اید.\nبا دکمه پایین اولین پلی‌لیست خود را بسازید',
             icon: Icons.queue_music_rounded,
           ),
-        LoadState.loaded => RefreshIndicator(
+          LoadState.loaded => RefreshIndicator(
             onRefresh: provider.load,
             child: ListView.builder(
               padding: const EdgeInsets.only(top: 8, bottom: 96),
@@ -124,7 +128,8 @@ class _PlaylistsTab extends StatelessWidget {
               itemBuilder: (context, i) => _PlaylistTile(playlist: provider.playlists[i]),
             ),
           ),
-      },
+        },
+      ),
     );
   }
 }
@@ -143,27 +148,30 @@ class _PlaylistTile extends StatelessWidget {
         size: 56,
         placeholderIcon: Icons.queue_music_rounded,
       ),
-      title: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: AutoText(
+        playlist.name,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+      ),
       subtitle: Text(
         playlist.description.isEmpty
-            ? '${playlist.trackCount} آهنگ'
-            : '${playlist.trackCount} آهنگ • ${playlist.description}',
+            ? '${toPersianDigits(playlist.trackCount)} آهنگ'
+            : '${toPersianDigits(playlist.trackCount)} آهنگ • ${playlist.description}',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(color: AppColors.textSecondary),
       ),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => PlaylistDetailScreen(playlistId: playlist.id),
-      )),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => PlaylistDetailScreen(playlistId: playlist.id)),
+      ),
       trailing: PopupMenuButton<String>(
         icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
         onSelected: (value) {
           if (value == 'edit') editPlaylist(context, playlist);
           if (value == 'delete') deletePlaylist(context, playlist);
         },
-        itemBuilder: (_) => const [
-          PopupMenuItem(value: 'edit', child: Text('ویرایش')),
-          PopupMenuItem(value: 'delete', child: Text('حذف')),
+        itemBuilder: (_) => [
+          menuItem('edit', Icons.edit_outlined, 'ویرایش'),
+          menuItem('delete', Icons.delete_outline_rounded, 'حذف', danger: true),
         ],
       ),
     );
@@ -177,14 +185,16 @@ class _FavoritesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<FavoritesProvider>();
     final tracks = provider.tracks;
-    return switch (provider.state) {
-      LoadState.idle || LoadState.loading => const LoadingView(),
-      LoadState.error => ErrorView(message: provider.error ?? 'خطا', onRetry: provider.load),
-      LoadState.empty => const EmptyView(
+    return FadeSwitcher(
+      state: provider.state,
+      child: switch (provider.state) {
+        LoadState.idle || LoadState.loading => const LoadingView(),
+        LoadState.error => ErrorView(message: provider.error ?? 'خطا', onRetry: provider.load),
+        LoadState.empty => const EmptyView(
           message: 'هنوز آهنگی را لایک نکرده‌اید',
           icon: Icons.favorite_border_rounded,
         ),
-      LoadState.loaded => RefreshIndicator(
+        LoadState.loaded => RefreshIndicator(
           onRefresh: provider.load,
           child: ListView(
             padding: const EdgeInsets.only(bottom: 24),
@@ -205,6 +215,7 @@ class _FavoritesTab extends StatelessWidget {
             ],
           ),
         ),
-    };
+      },
+    );
   }
 }

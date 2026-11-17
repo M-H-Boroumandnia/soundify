@@ -83,6 +83,7 @@ class _SoundifyAppState extends State<SoundifyApp> {
       child: MaterialApp(
         title: 'Soundify',
         debugShowCheckedModeBanner: false,
+        scrollBehavior: const AppScrollBehavior(),
         navigatorKey: rootNavigatorKey,
         theme: buildDarkTheme(),
         darkTheme: buildDarkTheme(),

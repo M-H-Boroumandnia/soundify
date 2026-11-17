@@ -8,6 +8,7 @@ import '../../state/player_controller.dart';
 import '../theme.dart';
 import 'add_to_playlist_sheet.dart';
 import 'cover_image.dart';
+import 'auto_text.dart';
 
 class TrackTile extends StatelessWidget {
   final Track track;
@@ -33,10 +34,12 @@ class TrackTile extends StatelessWidget {
     );
     final textTheme = Theme.of(context).textTheme;
 
+    final secondary = textTheme.bodySmall?.copyWith(color: AppColors.textSecondary);
+
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 6, 8),
         child: Row(
           children: [
             CoverImage(url: track.coverUrl),
@@ -45,41 +48,60 @@ class TrackTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  AutoText(
                     track.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: isCurrent ? AppColors.primary : null,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    track.album.isEmpty
-                        ? track.artist
-                        : '${track.artist} • ${track.album}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: AutoText(
+                          track.album.isEmpty
+                              ? track.artist
+                              : '${track.artist} • ${track.album}',
+                          style: secondary,
+                        ),
+                      ),
+                      Text('  •  ', style: secondary),
+                      Text(
+                        formatSeconds(track.durationSeconds),
+                        textDirection: TextDirection.ltr,
+                        style: secondary?.copyWith(
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            Text(
-              formatSeconds(track.durationSeconds),
-              style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-            ),
+            const SizedBox(width: 8),
             IconButton(
               tooltip: isFavorite ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 34, height: 40),
+              style: IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap),
               icon: Icon(
                 isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                 color: isFavorite ? AppColors.primary : AppColors.textSecondary,
+                size: 22,
               ),
               onPressed: () => toggleFavorite(context, track),
             ),
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
+              padding: EdgeInsets.zero,
+              style: IconButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(28, 40),
+                fixedSize: const Size(28, 40),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary, size: 22),
               onSelected: (value) {
                 if (value == 'add_playlist') {
                   showAddToPlaylistSheet(context, track);
@@ -88,10 +110,7 @@ class TrackTile extends StatelessWidget {
                 }
               },
               itemBuilder: (_) => [
-                const PopupMenuItem(
-                  value: 'add_playlist',
-                  child: Text('افزودن به پلی‌لیست'),
-                ),
+                menuItem('add_playlist', Icons.playlist_add_rounded, 'افزودن به پلی‌لیست'),
                 ...extraActions,
               ],
             ),

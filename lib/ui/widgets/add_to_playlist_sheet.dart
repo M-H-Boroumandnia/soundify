@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/utils/formatters.dart';
 import '../../core/network/api_exception.dart';
 import '../../data/models/playlist.dart';
 import '../../data/models/track.dart';
@@ -104,7 +105,7 @@ class _AddToPlaylistSheet extends StatelessWidget {
                             placeholderIcon: Icons.queue_music_rounded,
                           ),
                           title: Text(p.name),
-                          subtitle: Text('${p.trackCount} آهنگ',
+                          subtitle: Text('${toPersianDigits(p.trackCount)} آهنگ',
                               style: const TextStyle(color: AppColors.textSecondary)),
                           onTap: () => _add(context, provider, p),
                         ),

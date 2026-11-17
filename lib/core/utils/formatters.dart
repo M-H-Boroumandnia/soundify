@@ -6,3 +6,8 @@ String formatDuration(Duration d) {
 }
 
 String formatSeconds(int seconds) => formatDuration(Duration(seconds: seconds));
+
+String toPersianDigits(Object value) {
+  const digits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  return value.toString().replaceAllMapped(RegExp(r'\d'), (m) => digits[int.parse(m[0]!)]);
+}
