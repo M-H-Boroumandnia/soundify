@@ -13,8 +13,14 @@ import 'resend_timer.dart';
 class OtpScreen extends StatefulWidget {
   final String initialEmail;
   final bool sendOnOpen;
+  final String? password;
 
-  const OtpScreen({super.key, this.initialEmail = '', this.sendOnOpen = false});
+  const OtpScreen({
+    super.key,
+    this.initialEmail = '',
+    this.sendOnOpen = false,
+    this.password,
+  });
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -66,8 +72,16 @@ class _OtpScreenState extends State<OtpScreen> {
     FocusScope.of(context).unfocus();
     setState(() => _loading = true);
     try {
-      await context.read<AuthProvider>().verifyOtp(_email.text.trim(), _code.text.trim());
-      if (mounted) goToHome(context);
+      final signedIn = await context
+          .read<AuthProvider>()
+          .verifyOtp(_email.text.trim(), _code.text.trim(), password: widget.password);
+      if (!mounted) return;
+      if (signedIn) {
+        goToHome(context);
+      } else {
+        showMessage(context, 'حساب شما تأیید شد. اکنون با ایمیل و رمز عبور وارد شوید');
+        Navigator.of(context).pop(_email.text.trim());
+      }
     } on ApiException catch (e) {
       if (mounted) showMessage(context, e.message, error: true);
     } finally {

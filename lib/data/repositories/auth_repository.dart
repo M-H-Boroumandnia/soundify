@@ -54,12 +54,14 @@ class AuthRepository {
     return OtpRequestResult.fromJson(data, 60);
   }
 
-  Future<void> verifyOtp(String email, String code) async {
+  Future<bool> verifyOtp(String email, String code) async {
     final data = await _api.post('/auth/otp/verify/', auth: false, data: {
       'email': email,
       'code': code,
     });
+    if (AuthTokens.tryParse(data) == null) return false;
     await _persist(data);
+    return true;
   }
 
   Future<OtpRequestResult> requestPasswordReset(String email) async {
@@ -91,6 +93,10 @@ class AuthRepository {
     if (tokens == null) {
       throw const ApiException('پاسخ نامعتبر از سرور دریافت شد');
     }
-    await _storage.save(tokens);
+    try {
+      await _storage.save(tokens);
+    } catch (_) {
+      throw const ApiException('ذخیره امن اطلاعات ورود روی این دستگاه ممکن نیست');
+    }
   }
 }

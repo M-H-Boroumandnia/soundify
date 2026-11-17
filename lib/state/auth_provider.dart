@@ -36,9 +36,14 @@ class AuthProvider extends ChangeNotifier {
     await _onSignedIn();
   }
 
-  Future<void> verifyOtp(String email, String code) async {
-    await _repo.verifyOtp(email, code);
-    await _onSignedIn();
+  Future<bool> verifyOtp(String email, String code, {String? password}) async {
+    if (await _repo.verifyOtp(email, code)) {
+      await _onSignedIn();
+      return true;
+    }
+    if (password == null) return false;
+    await login(email, password);
+    return true;
   }
 
   Future<bool> loginWithBiometric() async {

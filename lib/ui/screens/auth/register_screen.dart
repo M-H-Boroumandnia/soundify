@@ -47,7 +47,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       showMessage(context, 'ثبت‌نام انجام شد. کد تأیید را وارد کنید');
       Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-        builder: (_) => OtpScreen(initialEmail: email, sendOnOpen: true),
+        builder: (_) => OtpScreen(
+          initialEmail: email,
+          sendOnOpen: true,
+          password: _password.text,
+        ),
       ));
     } on ApiException catch (e) {
       if (!mounted) return;

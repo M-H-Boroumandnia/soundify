@@ -31,7 +31,7 @@ class ApiClient {
     if (kDebugMode) {
       dio.interceptors.add(LogInterceptor(
         requestBody: true,
-        responseBody: false,
+        responseBody: true,
         logPrint: (o) => debugPrint(o.toString()),
       ));
     }

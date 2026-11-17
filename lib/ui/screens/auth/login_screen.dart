@@ -6,7 +6,6 @@ import '../../../core/utils/validators.dart';
 import '../../../state/auth_provider.dart';
 import '../../navigation.dart';
 import '../../theme.dart';
-import '../../widgets/app_logo.dart';
 import 'auth_scaffold.dart';
 import 'forgot_password_screen.dart';
 import 'otp_screen.dart';
@@ -66,7 +65,11 @@ class _LoginScreenState extends State<LoginScreen> {
       if (e.statusCode == 403) {
         showMessage(context, 'حساب شما تأیید نشده است. کد تأیید به ایمیل شما ارسال می‌شود');
         Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => OtpScreen(initialEmail: email, sendOnOpen: true),
+          builder: (_) => OtpScreen(
+            initialEmail: email,
+            sendOnOpen: true,
+            password: _password.text,
+          ),
         ));
       } else {
         showMessage(context, e.message, error: true);
@@ -95,6 +98,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _openOtp() async {
+    final email = await Navigator.of(context).push<String>(MaterialPageRoute(
+      builder: (_) => OtpScreen(initialEmail: _email.text.trim()),
+    ));
+    if (email != null && mounted) _email.text = email;
+  }
+
   void _push(Widget screen) =>
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
 
@@ -110,8 +120,6 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Center(child: AppLogo(size: 72, showName: false)),
-              const SizedBox(height: 32),
               EmailField(controller: _email, validator: Validators.email),
               const SizedBox(height: 16),
               PasswordField(
@@ -132,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
               OutlinedButton.icon(
                 onPressed: _loading
                     ? null
-                    : () => _push(OtpScreen(initialEmail: _email.text.trim())),
+                    : _openOtp,
                 icon: const Icon(Icons.mark_email_read_outlined),
                 label: const Text('ورود با کد یک‌بار مصرف'),
               ),

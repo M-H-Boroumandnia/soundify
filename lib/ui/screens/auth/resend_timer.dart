@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../theme.dart';
@@ -87,6 +88,7 @@ class OtpField extends StatelessWidget {
         textAlign: TextAlign.center,
         maxLength: 6,
         autofillHints: const [AutofillHints.oneTimeCode],
+        inputFormatters: [_DigitsFormatter()],
         style: Theme.of(context).textTheme.headlineSmall?.copyWith(letterSpacing: 12),
         validator: validator,
         onChanged: (v) {
@@ -94,4 +96,30 @@ class OtpField extends StatelessWidget {
         },
         decoration: const InputDecoration(counterText: '', hintText: '------'),
       );
+}
+
+class _DigitsFormatter extends TextInputFormatter {
+  static String normalize(String input) {
+    final buffer = StringBuffer();
+    for (final unit in input.runes) {
+      if (unit >= 0x06F0 && unit <= 0x06F9) {
+        buffer.writeCharCode(unit - 0x06F0 + 0x30);
+      } else if (unit >= 0x0660 && unit <= 0x0669) {
+        buffer.writeCharCode(unit - 0x0660 + 0x30);
+      } else if (unit >= 0x30 && unit <= 0x39) {
+        buffer.writeCharCode(unit);
+      }
+    }
+    return buffer.toString();
+  }
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = normalize(newValue.text);
+    if (text == newValue.text) return newValue;
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
 }
