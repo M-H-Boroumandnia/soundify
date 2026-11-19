@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onScroll() {
-    if (_scroll.position.extentAfter < 400) _all.loadMore();
+    if (_scroll.position.extentAfter < 600) _all.loadMore();
   }
 
   Future<void> _load() async {
@@ -80,13 +80,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  List<String> get _artists {
+  List<String> _artists = const [];
+  int _artistKey = -1;
+
+  List<String> _computeArtists() {
     final counts = <String, int>{};
     for (final t in [..._featured, ..._all.items]) {
       if (t.artist.isEmpty) continue;
       counts[t.artist] = (counts[t.artist] ?? 0) + 1;
     }
-    final sorted = counts.keys.toList()..sort((a, b) => counts[b]!.compareTo(counts[a]!));
+    final sorted = counts.keys.toList()
+      ..sort((a, b) => counts[b]!.compareTo(counts[a]!));
     return sorted.take(10).toList();
   }
 
@@ -105,18 +109,29 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListenableBuilder(
           listenable: _all,
           builder: (context, _) {
-            if (_featuredState == LoadState.error && _all.state == LoadState.error) {
-              return ErrorView(message: _featuredError ?? 'خطا', onRetry: _load);
+            final artistKey = _featured.length * 100000 + _all.items.length;
+            if (artistKey != _artistKey) {
+              _artistKey = artistKey;
+              _artists = _computeArtists();
+            }
+            if (_featuredState == LoadState.error &&
+                _all.state == LoadState.error) {
+              return ErrorView(
+                message: _featuredError ?? 'خطا',
+                onRetry: _load,
+              );
             }
             return RefreshIndicator(
               color: AppColors.primary,
               onRefresh: _load,
               child: CustomScrollView(
                 controller: _scroll,
+                scrollCacheExtent: const ScrollCacheExtent.pixels(500),
                 slivers: [
                   SliverToBoxAdapter(child: _buildHeader(name)),
                   SliverToBoxAdapter(child: _buildFeatured()),
-                  if (_artists.isNotEmpty) SliverToBoxAdapter(child: _buildCategories()),
+                  if (_artists.isNotEmpty)
+                    SliverToBoxAdapter(child: _buildCategories()),
                   const SliverToBoxAdapter(child: _SectionTitle('همه آهنگ‌ها')),
                   ..._buildAllTracks(),
                 ],
@@ -132,7 +147,8 @@ class _HomeScreenState extends State<HomeScreen> {
     padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
     child: Text(
       name == null ? _greeting : '$_greeting، $name',
-      style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+      style: Theme.of(context).textTheme.headlineSmall
+          ?.copyWith(fontWeight: FontWeight.w800),
     ),
   );
 
@@ -151,7 +167,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 message: _featuredError ?? 'خطا',
                 onRetry: _loadFeatured,
               ),
-              LoadState.empty => const EmptyView(message: 'آهنگ منتخبی وجود ندارد'),
+              LoadState.empty => const EmptyView(
+                message: 'آهنگ منتخبی وجود ندارد',
+              ),
               LoadState.loaded => ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -159,7 +177,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 separatorBuilder: (_, _) => const SizedBox(width: 14),
                 itemBuilder: (context, i) => _FeaturedCard(
                   track: _featured[i],
-                  onTap: () => context.read<PlayerController>().playTracks(_featured, i),
+                  onTap: () =>
+                      context.read<PlayerController>().playTracks(_featured, i),
                 ),
               ),
             },
@@ -188,8 +207,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 MaterialPageRoute<void>(
                   builder: (_) => TrackListScreen(
                     title: artist,
-                    loader: (page, token) =>
-                        _repo.tracksByArtist(artist, page: page, cancelToken: token),
+                    loader: (page, token) => _repo.tracksByArtist(
+                      artist,
+                      page: page,
+                      cancelToken: token,
+                    ),
                   ),
                 ),
               ),
@@ -208,11 +230,16 @@ class _HomeScreenState extends State<HomeScreen> {
       case LoadState.error:
         return [
           SliverToBoxAdapter(
-            child: ErrorView(message: _all.error ?? 'خطا', onRetry: _all.refresh),
+            child: ErrorView(
+              message: _all.error ?? 'خطا',
+              onRetry: _all.refresh,
+            ),
           ),
         ];
       case LoadState.empty:
-        return const [SliverToBoxAdapter(child: EmptyView(message: 'آهنگی یافت نشد'))];
+        return const [
+          SliverToBoxAdapter(child: EmptyView(message: 'آهنگی یافت نشد')),
+        ];
       case LoadState.loaded:
         final items = _all.items;
         return [
@@ -220,12 +247,16 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: items.length,
             itemBuilder: (context, i) => TrackTile(
               track: items[i],
-              onTap: () => context.read<PlayerController>().playTracks(items, i),
+              onTap: () =>
+                  context.read<PlayerController>().playTracks(items, i),
             ),
           ),
           SliverToBoxAdapter(
             child: _all.hasMore
-                ? const Padding(padding: EdgeInsets.all(16), child: LoadingView())
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: LoadingView(),
+                  )
                 : const SizedBox(height: 24),
           ),
         ];
@@ -243,7 +274,8 @@ class _SectionTitle extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
     child: Text(
       text,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+      style: Theme.of(context).textTheme.titleLarge
+          ?.copyWith(fontWeight: FontWeight.w700),
     ),
   );
 }
@@ -277,14 +309,20 @@ class _FeaturedCard extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     padding: const EdgeInsets.all(6),
-                    child: const Icon(Icons.play_arrow_rounded, color: AppColors.onPrimary),
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: AppColors.onPrimary,
+                    ),
                   ),
                 ),
                 Positioned(
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(8),
@@ -307,8 +345,12 @@ class _FeaturedCard extends StatelessWidget {
               style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
             AutoText(
-              track.album.isEmpty ? track.artist : '${track.artist} • ${track.album}',
-              style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+              track.album.isEmpty
+                  ? track.artist
+                  : '${track.artist} • ${track.album}',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -334,12 +376,18 @@ class _ArtistPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _palette[name.codeUnits.fold<int>(0, (a, b) => a + b) % _palette.length];
-    final initial = name.trim().isEmpty ? '?' : name.trim().substring(0, 1).toUpperCase();
+    final color =
+        _palette[name.codeUnits.fold<int>(0, (a, b) => a + b) %
+            _palette.length];
+    final initial = name.trim().isEmpty
+        ? '?'
+        : name.trim().substring(0, 1).toUpperCase();
     final textTheme = Theme.of(context).textTheme;
     return Material(
       color: AppColors.surfaceHigh,
-      shape: StadiumBorder(side: BorderSide(color: color.withValues(alpha: 0.25))),
+      shape: StadiumBorder(
+        side: BorderSide(color: color.withValues(alpha: 0.25)),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,

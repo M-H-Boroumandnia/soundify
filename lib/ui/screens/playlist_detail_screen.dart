@@ -90,36 +90,47 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            _Header(playlist: playlist),
+        child: CustomScrollView(
+          scrollCacheExtent: const ScrollCacheExtent.pixels(500),
+          slivers: [
+            SliverToBoxAdapter(child: _Header(playlist: playlist)),
             if (_loading && playlist.tracks.isEmpty)
-              const LoadingView()
+              const SliverToBoxAdapter(child: LoadingView())
             else if (_error != null && playlist.tracks.isEmpty)
-              ErrorView(message: _error!, onRetry: _load)
+              SliverToBoxAdapter(
+                child: ErrorView(message: _error!, onRetry: _load),
+              )
             else if (playlist.tracks.isEmpty)
-              const EmptyView(
-                message: 'این پلی‌لیست خالی است.\nاز منوی هر آهنگ آن را به پلی‌لیست اضافه کنید',
+              const SliverToBoxAdapter(
+                child: EmptyView(
+                  message: 'این پلی‌لیست خالی است.\nاز منوی هر آهنگ آن را به پلی‌لیست اضافه کنید',
+                ),
               )
             else
-              for (var i = 0; i < playlist.tracks.length; i++)
-                TrackTile(
-                  track: playlist.tracks[i],
-                  onTap: () =>
-                      context.read<PlayerController>().playTracks(playlist.tracks, i),
-                  extraActions: [
-                    menuItem(
-                      'remove',
-                      Icons.playlist_remove_rounded,
-                      'حذف از این پلی‌لیست',
-                      danger: true,
+              SliverList.builder(
+                itemCount: playlist.tracks.length,
+                itemBuilder: (context, i) {
+                  final track = playlist.tracks[i];
+                  return TrackTile(
+                    track: track,
+                    onTap: () => context.read<PlayerController>().playTracks(
+                      playlist.tracks,
+                      i,
                     ),
-                  ],
-                  onExtraAction: (action) {
-                    if (action == 'remove') _removeTrack(playlist, playlist.tracks[i]);
-                  },
-                ),
+                    extraActions: [
+                      menuItem(
+                        'remove',
+                        Icons.playlist_remove_rounded,
+                        'حذف از این پلی‌لیست',
+                        danger: true,
+                      ),
+                    ],
+                    onExtraAction: (action) {
+                      if (action == 'remove') _removeTrack(playlist, track);
+                    },
+                  );
+                },
+              ),
           ],
         ),
       ),
@@ -150,28 +161,36 @@ class _Header extends StatelessWidget {
             playlist.name,
             maxLines: 2,
             textAlign: TextAlign.center,
-            style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            style: textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
           ),
           if (playlist.description.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
               playlist.description,
               textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
           const SizedBox(height: 6),
           Text(
             '${toPersianDigits(playlist.tracks.length)} آهنگ',
-            style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           if (playlist.tracks.isNotEmpty) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: 200,
               child: FilledButton.icon(
-                onPressed: () =>
-                    context.read<PlayerController>().playTracks(playlist.tracks, 0),
+                onPressed: () => context.read<PlayerController>().playTracks(
+                  playlist.tracks,
+                  0,
+                ),
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: const Text('پخش'),
               ),

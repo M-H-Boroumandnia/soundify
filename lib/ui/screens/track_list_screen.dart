@@ -29,7 +29,7 @@ class _TrackListScreenState extends State<TrackListScreen> {
   void initState() {
     super.initState();
     _scroll.addListener(() {
-      if (_scroll.position.extentAfter < 400) _paged.loadMore();
+      if (_scroll.position.extentAfter < 600) _paged.loadMore();
     });
   }
 
@@ -50,24 +50,33 @@ class _TrackListScreenState extends State<TrackListScreen> {
           state: _paged.state,
           child: switch (_paged.state) {
             LoadState.idle || LoadState.loading => const LoadingView(),
-            LoadState.error => ErrorView(message: _paged.error ?? 'خطا', onRetry: _paged.refresh),
-            LoadState.empty => const EmptyView(message: 'آهنگی یافت نشد'),
-            LoadState.loaded => RefreshIndicator(
-              onRefresh: _paged.refresh,
-              child: ListView.builder(
-                controller: _scroll,
-                itemCount: _paged.items.length + (_paged.hasMore ? 1 : 0),
-                itemBuilder: (context, i) {
-                  if (i >= _paged.items.length) return const LoadingView();
-                  return TrackTile(
-                    track: _paged.items[i],
-                    onTap: () => context.read<PlayerController>().playTracks(_paged.items, i),
-                  );
-                },
-              ),
+            LoadState.error => ErrorView(
+              message: _paged.error ?? 'خطا',
+              onRetry: _paged.refresh,
             ),
+            LoadState.empty => const EmptyView(message: 'آهنگی یافت نشد'),
+            LoadState.loaded => _buildList(),
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildList() {
+    final items = _paged.items;
+    return RefreshIndicator(
+      onRefresh: _paged.refresh,
+      child: ListView.builder(
+        controller: _scroll,
+        scrollCacheExtent: const ScrollCacheExtent.pixels(500),
+        itemCount: items.length + (_paged.hasMore ? 1 : 0),
+        itemBuilder: (context, i) {
+          if (i >= items.length) return const LoadingView();
+          return TrackTile(
+            track: items[i],
+            onTap: () => context.read<PlayerController>().playTracks(items, i),
+          );
+        },
       ),
     );
   }

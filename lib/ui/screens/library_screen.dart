@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/playlist.dart';
+import '../../data/models/track.dart';
 import '../../state/favorites_provider.dart';
 import '../../state/load_state.dart';
 import '../../state/player_controller.dart';
@@ -46,8 +47,13 @@ Future<void> createPlaylist(BuildContext context) async {
   final result = await showPlaylistFormDialog(context);
   if (result == null || !context.mounted) return;
   try {
-    await context.read<PlaylistsProvider>().create(result.name, result.description);
-    if (context.mounted) showMessage(context, 'پلی‌لیست «${result.name}» ساخته شد');
+    await context.read<PlaylistsProvider>().create(
+      result.name,
+      result.description,
+    );
+    if (context.mounted) {
+      showMessage(context, 'پلی‌لیست «${result.name}» ساخته شد');
+    }
   } on ApiException catch (e) {
     if (context.mounted) showMessage(context, e.message, error: true);
   }
@@ -61,7 +67,11 @@ Future<void> editPlaylist(BuildContext context, Playlist playlist) async {
   );
   if (result == null || !context.mounted) return;
   try {
-    await context.read<PlaylistsProvider>().update(playlist, result.name, result.description);
+    await context.read<PlaylistsProvider>().update(
+      playlist,
+      result.name,
+      result.description,
+    );
     if (context.mounted) showMessage(context, 'پلی‌لیست ویرایش شد');
   } on ApiException catch (e) {
     if (context.mounted) showMessage(context, e.message, error: true);
@@ -76,7 +86,10 @@ Future<bool> deletePlaylist(BuildContext context, Playlist playlist) async {
       title: const Text('حذف پلی‌لیست'),
       content: Text('آیا از حذف «${playlist.name}» مطمئن هستید؟'),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('انصراف')),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('انصراف'),
+        ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
           style: TextButton.styleFrom(foregroundColor: AppColors.danger),
@@ -115,7 +128,10 @@ class _PlaylistsTab extends StatelessWidget {
         state: provider.state,
         child: switch (provider.state) {
           LoadState.idle || LoadState.loading => const LoadingView(),
-          LoadState.error => ErrorView(message: provider.error ?? 'خطا', onRetry: provider.load),
+          LoadState.error => ErrorView(
+            message: provider.error ?? 'خطا',
+            onRetry: provider.load,
+          ),
           LoadState.empty => const EmptyView(
             message: 'هنوز پلی‌لیستی نساخته‌اید.\nبا دکمه پایین اولین پلی‌لیست خود را بسازید',
             icon: Icons.queue_music_rounded,
@@ -125,7 +141,8 @@ class _PlaylistsTab extends StatelessWidget {
             child: ListView.builder(
               padding: const EdgeInsets.only(top: 8, bottom: 96),
               itemCount: provider.playlists.length,
-              itemBuilder: (context, i) => _PlaylistTile(playlist: provider.playlists[i]),
+              itemBuilder: (context, i) =>
+                  _PlaylistTile(playlist: provider.playlists[i]),
             ),
           ),
         },
@@ -150,7 +167,8 @@ class _PlaylistTile extends StatelessWidget {
       ),
       title: AutoText(
         playlist.name,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+        style: Theme.of(context).textTheme.bodyLarge
+            ?.copyWith(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
         playlist.description.isEmpty
@@ -161,10 +179,15 @@ class _PlaylistTile extends StatelessWidget {
         style: const TextStyle(color: AppColors.textSecondary),
       ),
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => PlaylistDetailScreen(playlistId: playlist.id)),
+        MaterialPageRoute<void>(
+          builder: (_) => PlaylistDetailScreen(playlistId: playlist.id),
+        ),
       ),
       trailing: PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
+        icon: const Icon(
+          Icons.more_vert_rounded,
+          color: AppColors.textSecondary,
+        ),
         onSelected: (value) {
           if (value == 'edit') editPlaylist(context, playlist);
           if (value == 'delete') deletePlaylist(context, playlist);
@@ -189,33 +212,50 @@ class _FavoritesTab extends StatelessWidget {
       state: provider.state,
       child: switch (provider.state) {
         LoadState.idle || LoadState.loading => const LoadingView(),
-        LoadState.error => ErrorView(message: provider.error ?? 'خطا', onRetry: provider.load),
+        LoadState.error => ErrorView(
+          message: provider.error ?? 'خطا',
+          onRetry: provider.load,
+        ),
         LoadState.empty => const EmptyView(
           message: 'هنوز آهنگی را لایک نکرده‌اید',
           icon: Icons.favorite_border_rounded,
         ),
-        LoadState.loaded => RefreshIndicator(
-          onRefresh: provider.load,
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 24),
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: FilledButton.icon(
-                  onPressed: () => context.read<PlayerController>().playTracks(tracks, 0),
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text('پخش همه (${tracks.length})'),
-                ),
-              ),
-              for (var i = 0; i < tracks.length; i++)
-                TrackTile(
-                  track: tracks[i],
-                  onTap: () => context.read<PlayerController>().playTracks(tracks, i),
-                ),
-            ],
-          ),
-        ),
+        LoadState.loaded => _buildFavorites(context, provider, tracks),
       },
+    );
+  }
+
+  Widget _buildFavorites(
+    BuildContext context,
+    FavoritesProvider provider,
+    List<Track> tracks,
+  ) {
+    return RefreshIndicator(
+      onRefresh: provider.load,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(bottom: 24),
+        scrollCacheExtent: const ScrollCacheExtent.pixels(500),
+        itemCount: tracks.length + 1,
+        itemBuilder: (context, i) {
+          if (i == 0) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: FilledButton.icon(
+                onPressed: () =>
+                    context.read<PlayerController>().playTracks(tracks, 0),
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: Text('پخش همه (${tracks.length})'),
+              ),
+            );
+          }
+          final index = i - 1;
+          return TrackTile(
+            track: tracks[index],
+            onTap: () =>
+                context.read<PlayerController>().playTracks(tracks, index),
+          );
+        },
+      ),
     );
   }
 }

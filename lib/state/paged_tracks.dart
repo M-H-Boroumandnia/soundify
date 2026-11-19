@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
@@ -6,7 +8,10 @@ import '../data/models/paginated.dart';
 import '../data/models/track.dart';
 import 'load_state.dart';
 
-typedef PageLoader = Future<Paginated<Track>> Function(int page, CancelToken token);
+typedef PageLoader = Future<Paginated<Track>> Function(
+  int page,
+  CancelToken token,
+);
 
 class PagedTracks extends ChangeNotifier {
   final PageLoader _loader;
@@ -15,6 +20,7 @@ class PagedTracks extends ChangeNotifier {
   PagedTracks(this._loader, {this.onLoaded});
 
   List<Track> _items = [];
+  late List<Track> _view = UnmodifiableListView(_items);
   LoadState _state = LoadState.idle;
   String? _error;
   int _page = 0;
@@ -22,7 +28,7 @@ class PagedTracks extends ChangeNotifier {
   bool _loadingMore = false;
   CancelToken? _token;
 
-  List<Track> get items => List.unmodifiable(_items);
+  List<Track> get items => _view;
   LoadState get state => _state;
   String? get error => _error;
   bool get hasMore => _hasMore;
@@ -43,7 +49,6 @@ class PagedTracks extends ChangeNotifier {
   Future<void> loadMore() async {
     if (!_hasMore || _loadingMore || _state != LoadState.loaded) return;
     _loadingMore = true;
-    notifyListeners();
     await _fetch(_token ??= CancelToken(), reset: false);
   }
 
@@ -54,6 +59,7 @@ class PagedTracks extends ChangeNotifier {
       _page++;
       _hasMore = result.hasNext;
       _items = reset ? result.results : [..._items, ...result.results];
+      _view = UnmodifiableListView(_items);
       _state = _items.isEmpty ? LoadState.empty : LoadState.loaded;
       onLoaded?.call(result.results);
     } on ApiException catch (e) {
@@ -73,6 +79,7 @@ class PagedTracks extends ChangeNotifier {
   void clear() {
     _token?.cancel();
     _items = [];
+    _view = UnmodifiableListView(_items);
     _state = LoadState.idle;
     notifyListeners();
   }

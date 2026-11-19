@@ -24,7 +24,8 @@ class _SearchScreenState extends State<SearchScreen> {
   final _debouncer = Debouncer(AppConfig.searchDebounce);
   late final MusicRepository _repo = context.read<MusicRepository>();
   late final PagedTracks _results = PagedTracks(
-    (page, token) => _repo.tracks(query: _query, page: page, cancelToken: token),
+    (page, token) =>
+        _repo.tracks(query: _query, page: page, cancelToken: token),
     onLoaded: context.read<FavoritesProvider>().seed,
   );
   String _query = '';
@@ -33,7 +34,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _scroll.addListener(() {
-      if (_scroll.position.extentAfter < 400) _results.loadMore();
+      if (_scroll.position.extentAfter < 600) _results.loadMore();
     });
   }
 
@@ -84,7 +85,10 @@ class _SearchScreenState extends State<SearchScreen> {
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _controller.text.isEmpty
                     ? null
-                    : IconButton(icon: const Icon(Icons.close_rounded), onPressed: _clear),
+                    : IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: _clear,
+                      ),
               ),
             ),
           ),
@@ -107,24 +111,30 @@ class _SearchScreenState extends State<SearchScreen> {
                     message: 'نتیجه‌ای برای «$_query» یافت نشد',
                     icon: Icons.search_off_rounded,
                   ),
-                  LoadState.loaded => ListView.builder(
-                    controller: _scroll,
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                    itemCount: _results.items.length + (_results.hasMore ? 1 : 0),
-                    itemBuilder: (context, i) {
-                      if (i >= _results.items.length) return const LoadingView();
-                      return TrackTile(
-                        track: _results.items[i],
-                        onTap: () => context.read<PlayerController>().playTracks(_results.items, i),
-                      );
-                    },
-                  ),
+                  LoadState.loaded => _buildResults(),
                 },
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildResults() {
+    final items = _results.items;
+    return ListView.builder(
+      controller: _scroll,
+      scrollCacheExtent: const ScrollCacheExtent.pixels(500),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      itemCount: items.length + (_results.hasMore ? 1 : 0),
+      itemBuilder: (context, i) {
+        if (i >= items.length) return const LoadingView();
+        return TrackTile(
+          track: items[i],
+          onTap: () => context.read<PlayerController>().playTracks(items, i),
+        );
+      },
     );
   }
 }
