@@ -21,6 +21,7 @@ Future<void> main() async {
     androidNotificationChannelId: 'ir.soundify.channel.audio',
     androidNotificationChannelName: 'پخش موسیقی',
     androidNotificationOngoing: true,
+    androidNotificationIcon: 'drawable/ic_stat_soundify',
   );
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
