@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/utils/formatters.dart';
 import '../../core/network/api_exception.dart';
 import '../../data/models/track.dart';
 import '../../data/repositories/music_repository.dart';
@@ -279,6 +280,25 @@ class _FeaturedCard extends StatelessWidget {
                     child: const Icon(Icons.play_arrow_rounded, color: AppColors.onPrimary),
                   ),
                 ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      formatSeconds(track.durationSeconds),
+                      textDirection: TextDirection.ltr,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -287,7 +307,7 @@ class _FeaturedCard extends StatelessWidget {
               style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
             AutoText(
-              track.artist,
+              track.album.isEmpty ? track.artist : '${track.artist} • ${track.album}',
               style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
