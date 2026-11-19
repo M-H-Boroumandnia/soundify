@@ -15,7 +15,9 @@ class MiniPlayer extends StatefulWidget {
 }
 
 class _MiniPlayerState extends State<MiniPlayer> {
-  late final Stream<PositionData> _position = context.read<PlayerController>().positionStream;
+  late final Stream<PositionData> _position = context
+      .read<PlayerController>()
+      .positionStream;
 
   @override
   Widget build(BuildContext context) {
@@ -46,13 +48,19 @@ class _MiniPlayerState extends State<MiniPlayer> {
                           final data = snapshot.data;
                           final total = data?.duration.inMilliseconds ?? 0;
                           final value = total > 0
-                              ? (data!.position.inMilliseconds / total).clamp(0.0, 1.0)
+                              ? (data!.position.inMilliseconds / total).clamp(
+                                  0.0,
+                                  1.0,
+                                )
                               : 0.0;
-                          return LinearProgressIndicator(
-                            value: value,
-                            minHeight: 2,
-                            color: AppColors.primary,
-                            backgroundColor: Colors.transparent,
+                          return Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: LinearProgressIndicator(
+                              value: value,
+                              minHeight: 2,
+                              color: AppColors.primary,
+                              backgroundColor: Colors.transparent,
+                            ),
                           );
                         },
                       ),
@@ -62,7 +70,11 @@ class _MiniPlayerState extends State<MiniPlayer> {
                           children: [
                             Hero(
                               tag: 'cover-${track.id}',
-                              child: CoverImage(url: track.coverUrl, size: 44, radius: 6),
+                              child: CoverImage(
+                                url: track.coverUrl,
+                                size: 44,
+                                radius: 6,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -71,12 +83,18 @@ class _MiniPlayerState extends State<MiniPlayer> {
                                 children: [
                                   AutoText(
                                     track.title,
-                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                   AutoText(
-                                    track.artist,
+                                    player.error ?? track.artist,
                                     style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: AppColors.textSecondary),
+                                        ?.copyWith(
+                                          color: player.error != null
+                                              ? AppColors.danger
+                                              : AppColors.textSecondary,
+                                        ),
                                   ),
                                 ],
                               ),
@@ -89,12 +107,16 @@ class _MiniPlayerState extends State<MiniPlayer> {
                                   IconButton(
                                     tooltip: 'قبلی',
                                     onPressed: player.previous,
-                                    icon: const Icon(Icons.skip_previous_rounded),
+                                    icon: const Icon(
+                                      Icons.skip_previous_rounded,
+                                    ),
                                   ),
                                   _PlayPauseButton(player: player),
                                   IconButton(
                                     tooltip: 'بعدی',
-                                    onPressed: player.hasNext ? player.next : null,
+                                    onPressed: player.canNext
+                                        ? player.next
+                                        : null,
                                     icon: const Icon(Icons.skip_next_rounded),
                                   ),
                                 ],
@@ -125,14 +147,31 @@ class _PlayPauseButton extends StatelessWidget {
         child: SizedBox(
           width: 24,
           height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2.4, color: AppColors.primary),
+          child: CircularProgressIndicator(
+            strokeWidth: 2.4,
+            color: AppColors.primary,
+          ),
+        ),
+      );
+    }
+    if (player.error != null && !player.isPlaying) {
+      return IconButton(
+        tooltip: 'تلاش دوباره',
+        onPressed: player.togglePlay,
+        icon: const Icon(
+          Icons.refresh_rounded,
+          size: 28,
+          color: AppColors.danger,
         ),
       );
     }
     return IconButton(
       tooltip: player.isPlaying ? 'توقف' : 'پخش',
       onPressed: player.togglePlay,
-      icon: Icon(player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 30),
+      icon: Icon(
+        player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+        size: 30,
+      ),
     );
   }
 }

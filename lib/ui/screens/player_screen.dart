@@ -15,17 +15,20 @@ import '../widgets/auto_text.dart';
 import '../widgets/equalizer_sheet.dart';
 
 void openPlayerScreen(BuildContext context) {
-  Navigator.of(context, rootNavigator: true).push(PageRouteBuilder<void>(
-    pageBuilder: (_, _, _) => const PlayerScreen(),
-    transitionDuration: const Duration(milliseconds: 350),
-    reverseTransitionDuration: const Duration(milliseconds: 300),
-    transitionsBuilder: (_, animation, _, child) => SlideTransition(
-      position: Tween(begin: const Offset(0, 1), end: Offset.zero)
-          .chain(CurveTween(curve: Curves.easeOutCubic))
-          .animate(animation),
-      child: child,
+  Navigator.of(context, rootNavigator: true).push(
+    PageRouteBuilder<void>(
+      pageBuilder: (_, _, _) => const PlayerScreen(),
+      transitionDuration: const Duration(milliseconds: 350),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
+        position: Tween(
+          begin: const Offset(0, 1),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
+        child: child,
+      ),
     ),
-  ));
+  );
 }
 
 class PlayerScreen extends StatefulWidget {
@@ -36,15 +39,27 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
-  late final Stream<PositionData> _position =
-      context.read<PlayerController>().positionStream;
+  late final Stream<PositionData> _position = context
+      .read<PlayerController>()
+      .positionStream;
   double? _dragValue;
+  String? _shownError;
 
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerController>();
     final track = player.current;
     final textTheme = Theme.of(context).textTheme;
+
+    final error = player.error;
+    if (error != null && error != _shownError) {
+      _shownError = error;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showMessage(context, error, error: true);
+      });
+    } else if (error == null) {
+      _shownError = null;
+    }
 
     if (track == null) {
       return Scaffold(
@@ -53,7 +68,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
       );
     }
 
-    final isFavorite = context.select<FavoritesProvider, bool>((f) => f.isFavorite(track.id));
+    final isFavorite = context.select<FavoritesProvider, bool>(
+      (f) => f.isFavorite(track.id),
+    );
     final coverSize = math.min(MediaQuery.sizeOf(context).width - 64, 340.0);
 
     return Scaffold(
@@ -75,14 +92,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   children: [
                     IconButton(
                       tooltip: 'بستن',
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 32),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 32,
+                      ),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     Expanded(
                       child: Text(
                         'در حال پخش',
                         textAlign: TextAlign.center,
-                        style: textTheme.titleSmall?.copyWith(color: AppColors.textSecondary),
+                        style: textTheme.titleSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                     IconButton(
@@ -99,16 +121,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: const [
-                        BoxShadow(color: Colors.black54, blurRadius: 40, offset: Offset(0, 16)),
+                        BoxShadow(
+                          color: Colors.black54,
+                          blurRadius: 40,
+                          offset: Offset(0, 16),
+                        ),
                       ],
                     ),
-                    child: CoverImage(url: track.coverUrl, size: coverSize, radius: 20),
+                    child: CoverImage(
+                      url: track.coverUrl,
+                      size: coverSize,
+                      radius: 20,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
                   height: 36,
-                  child: _Visualizer(active: player.isPlaying && !player.isBuffering),
+                  child: _Visualizer(
+                    active: player.isPlaying && !player.isBuffering,
+                  ),
                 ),
                 const Spacer(),
                 Row(
@@ -119,12 +151,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         children: [
                           AutoText(
                             track.title,
-                            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                            style: textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           AutoText(
-                            track.album.isEmpty ? track.artist : '${track.artist} • ${track.album}',
-                            style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                            track.album.isEmpty
+                                ? track.artist
+                                : '${track.artist} • ${track.album}',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -137,7 +175,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     IconButton(
                       tooltip: 'علاقه‌مندی',
                       icon: Icon(
-                        isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                        isFavorite
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
                         color: isFavorite ? AppColors.primary : null,
                         size: 28,
                       ),
@@ -149,11 +189,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 _buildSeekBar(player),
                 const SizedBox(height: 8),
                 _buildControls(player),
-                if (player.error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(player.error!, style: const TextStyle(color: AppColors.danger)),
-                  ),
                 const SizedBox(height: 32),
               ],
             ),
@@ -167,15 +202,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return StreamBuilder<PositionData>(
       stream: _position,
       builder: (context, snapshot) {
-        final data = snapshot.data ??
-            PositionData(Duration.zero, Duration.zero, player.current?.duration ?? Duration.zero);
+        final data =
+            snapshot.data ??
+            PositionData(
+              Duration.zero,
+              Duration.zero,
+              player.current?.duration ?? Duration.zero,
+            );
         final max = data.duration.inMilliseconds.toDouble();
         final position = data.position.inMilliseconds.clamp(0, max).toDouble();
         final value = (_dragValue ?? position).clamp(0.0, max > 0 ? max : 1.0);
         final buffered = data.buffered.inMilliseconds.clamp(0, max).toDouble();
-        final style = Theme.of(context)
-            .textTheme
-            .bodySmall
+        final style = Theme.of(context).textTheme.bodySmall
             ?.copyWith(color: AppColors.textSecondary);
 
         return Column(
@@ -196,14 +234,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     ),
                   ),
                   SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      inactiveTrackColor: Colors.transparent,
-                    ),
+                    data: SliderTheme.of(context)
+                        .copyWith(inactiveTrackColor: Colors.transparent),
                     child: Slider(
                       min: 0,
                       max: max > 0 ? max : 1,
                       value: value,
-                      onChanged: max > 0 ? (v) => setState(() => _dragValue = v) : null,
+                      onChanged: max > 0
+                          ? (v) => setState(() => _dragValue = v)
+                          : null,
                       onChangeEnd: (v) {
                         player.seek(Duration(milliseconds: v.round()));
                         setState(() => _dragValue = null);
@@ -220,7 +259,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(formatDuration(Duration(milliseconds: value.round())), style: style),
+                    Text(
+                      formatDuration(Duration(milliseconds: value.round())),
+                      style: style,
+                    ),
                     Text(formatDuration(data.duration), style: style),
                   ],
                 ),
@@ -245,8 +287,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
               return IconButton(
                 tooltip: 'تکرار',
                 icon: Icon(
-                  mode == LoopMode.one ? Icons.repeat_one_rounded : Icons.repeat_rounded,
-                  color: mode == LoopMode.off ? AppColors.textSecondary : AppColors.primary,
+                  mode == LoopMode.one
+                      ? Icons.repeat_one_rounded
+                      : Icons.repeat_rounded,
+                  color: mode == LoopMode.off
+                      ? AppColors.textSecondary
+                      : AppColors.primary,
                 ),
                 onPressed: () => player.player.setLoopMode(
                   LoopMode.values[(mode.index + 1) % LoopMode.values.length],
@@ -275,7 +321,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       foregroundColor: AppColors.onPrimary,
                     ),
                     iconSize: 42,
-                    icon: Icon(player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                    icon: Icon(
+                      player.isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                    ),
                     onPressed: player.togglePlay,
                   ),
           ),
@@ -283,7 +333,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             tooltip: 'بعدی',
             iconSize: 40,
             icon: const Icon(Icons.skip_next_rounded),
-            onPressed: player.hasNext ? player.next : null,
+            onPressed: player.canNext ? player.next : null,
           ),
           StreamBuilder<bool>(
             stream: player.player.shuffleModeEnabledStream,
@@ -321,7 +371,8 @@ class _Visualizer extends StatefulWidget {
   State<_Visualizer> createState() => _VisualizerState();
 }
 
-class _VisualizerState extends State<_Visualizer> with SingleTickerProviderStateMixin {
+class _VisualizerState extends State<_Visualizer>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
@@ -362,8 +413,11 @@ class _VisualizerState extends State<_Visualizer> with SingleTickerProviderState
           children: List.generate(bars, (i) {
             final wave = widget.active
                 ? 0.25 +
-                    0.75 *
-                        ((math.sin(t * 2 + i * 0.7) + math.sin(t * 3 + i * 1.3) + 2) / 4)
+                      0.75 *
+                          ((math.sin(t * 2 + i * 0.7) +
+                                  math.sin(t * 3 + i * 1.3) +
+                                  2) /
+                              4)
                 : 0.12;
             return Container(
               width: 4,

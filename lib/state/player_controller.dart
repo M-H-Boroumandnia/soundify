@@ -35,6 +35,10 @@ class PlayerController extends ChangeNotifier {
   int? _index;
   String? _error;
   bool _initialized = false;
+  bool _loaded = false;
+  bool _retrying = false;
+  int _retries = 0;
+  int _loadId = 0;
 
   AudioPlayer get player => _player;
   List<Track> get queue => List.unmodifiable(_queue);
@@ -47,6 +51,8 @@ class PlayerController extends ChangeNotifier {
       _player.processingState == ProcessingState.buffering;
   bool get hasNext => _player.hasNext;
   bool get hasPrevious => _player.hasPrevious;
+  bool get canNext => _index != null && _index! + 1 < _queue.length;
+  bool get canPrevious => _index != null && _index! > 0;
   String? get error => _error;
 
   Stream<PositionData> get positionStream {
@@ -54,16 +60,20 @@ class PlayerController extends ChangeNotifier {
     StreamSubscription<Duration>? sub;
     controller = StreamController<PositionData>(
       onListen: () {
-        sub = _player.createPositionStream(
-          minPeriod: const Duration(milliseconds: 200),
-          maxPeriod: const Duration(milliseconds: 200),
-        ).listen((position) {
-          controller.add(PositionData(
-            position,
-            _player.bufferedPosition,
-            _player.duration ?? current?.duration ?? Duration.zero,
-          ));
-        });
+        sub = _player
+            .createPositionStream(
+              minPeriod: const Duration(milliseconds: 200),
+              maxPeriod: const Duration(milliseconds: 200),
+            )
+            .listen((position) {
+              controller.add(
+                PositionData(
+                  position,
+                  _player.bufferedPosition,
+                  _player.duration ?? current?.duration ?? Duration.zero,
+                ),
+              );
+            });
       },
       onCancel: () => sub?.cancel(),
     );
@@ -75,95 +85,169 @@ class PlayerController extends ChangeNotifier {
     _initialized = true;
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.music());
-    _subs.add(_player.currentIndexStream.listen((index) {
-      _index = index;
-      notifyListeners();
-    }));
-    _subs.add(_player.playerStateStream.listen((_) => notifyListeners()));
-    _subs.add(_player.playbackEventStream.listen(
-      (_) {},
-      onError: (Object e, StackTrace _) {
-        _error = 'خطا در پخش آهنگ';
+    _subs.add(
+      _player.currentIndexStream.listen((index) {
+        if (_index != index) _retries = 0;
+        _index = index;
         notifyListeners();
-      },
-    ));
+      }),
+    );
+    _subs.add(_player.playerStateStream.listen((_) => notifyListeners()));
+    _subs.add(_player.errorStream.listen((_) => _onPlaybackError()));
+    _subs.add(
+      _player.playbackEventStream.listen(
+        (_) {},
+        onError: (Object e, StackTrace _) => _onPlaybackError(),
+      ),
+    );
   }
 
-  Future<void> playTracks(List<Track> tracks, int startIndex) async {
+  Future<void> playTracks(List<Track> tracks, int startIndex) {
+    _retries = 0;
+    return _load(tracks, startIndex);
+  }
+
+  Future<void> _load(List<Track> tracks, int startIndex) async {
     if (tracks.isEmpty) return;
-    final sameQueue = _queue.length == tracks.length &&
+    final sameQueue =
+        _queue.length == tracks.length &&
         Iterable.generate(tracks.length)
             .every((i) => _queue[i].id == tracks[i].id);
-    if (sameQueue) {
-      unawaited(_player.seek(Duration.zero, index: startIndex));
-      unawaited(_player.play());
+    if (sameQueue && _loaded) {
+      await _player.seek(Duration.zero, index: startIndex);
+      _start();
       return;
     }
+    final loadId = ++_loadId;
     _error = null;
     _queue = List.of(tracks);
     _index = startIndex;
+    _loaded = false;
     notifyListeners();
     try {
       final loading = _player.setAudioSources(
         _queue.map(_toSource).toList(),
         initialIndex: startIndex,
       );
-      unawaited(_player.play());
+      _start();
       await loading;
-    } on PlayerException catch (e) {
-      _error = e.message ?? 'خطا در پخش آهنگ';
-      notifyListeners();
+      if (loadId != _loadId) return;
+      _loaded = true;
+      if (!_player.playing) _start();
+    } on PlayerException {
+      if (loadId != _loadId) return;
+      _loaded = false;
+      _onPlaybackError();
     } on PlayerInterruptedException {
       return;
     }
   }
 
+  void _start() {
+    unawaited(_player.play().catchError((Object _) {}));
+  }
+
+  void _halt() {
+    unawaited(_player.stop().catchError((Object _) {}));
+  }
+
+  void _onPlaybackError() {
+    if (_queue.isEmpty || _index == null) return;
+    _loaded = false;
+    if (_retrying) return;
+    if (_retries >= 2) {
+      _error = 'خطا در پخش آهنگ';
+      _halt();
+      notifyListeners();
+      return;
+    }
+    final loadId = _loadId;
+    _retries++;
+    _retrying = true;
+    _error = 'اتصال قطع شد؛ تلاش دوباره';
+    notifyListeners();
+    Future<void>.delayed(const Duration(milliseconds: 800), () {
+      _retrying = false;
+      if (loadId != _loadId || _queue.isEmpty || _index == null) return;
+      _load(_queue, _index!);
+    });
+  }
+
   Future<void> togglePlay() async {
     if (_player.playing) {
       await _player.pause();
-    } else {
-      if (_player.processingState == ProcessingState.completed) {
-        await _player.seek(Duration.zero, index: 0);
-      }
-      unawaited(_player.play());
+      return;
     }
+    if (current == null) return;
+    final state = _player.processingState;
+    if (state == ProcessingState.loading ||
+        state == ProcessingState.buffering) {
+      return;
+    }
+    if (!_loaded) {
+      await _load(_queue, _index ?? 0);
+      return;
+    }
+    if (state == ProcessingState.completed) {
+      await _player.seek(Duration.zero, index: _index ?? 0);
+    }
+    _start();
   }
 
   Future<void> next() async {
-    if (_player.hasNext) await _player.seekToNext();
+    final index = _index;
+    if (index == null || index + 1 >= _queue.length) return;
+    if (_loaded && _player.hasNext) {
+      await _player.seekToNext();
+      return;
+    }
+    await _load(_queue, index + 1);
   }
 
   Future<void> previous() async {
-    if (_player.position > const Duration(seconds: 3) || !_player.hasPrevious) {
+    final index = _index;
+    if (index == null) return;
+    if (_player.position > const Duration(seconds: 3) || index == 0) {
       await _player.seek(Duration.zero);
-    } else {
-      await _player.seekToPrevious();
+      return;
     }
+    if (_loaded && _player.hasPrevious) {
+      await _player.seekToPrevious();
+      return;
+    }
+    await _load(_queue, index - 1);
   }
 
   Future<void> seek(Duration position) => _player.seek(position);
 
   Future<void> stop() async {
+    _loadId++;
     await _player.stop();
     _queue = [];
     _index = null;
+    _loaded = false;
+    _retries = 0;
+    _error = null;
     notifyListeners();
   }
 
   AudioSource _toSource(Track track) => AudioSource.uri(
-        Uri.parse(track.streamUrl),
-        tag: MediaItem(
-          id: track.id,
-          title: track.title,
-          artist: track.artist,
-          album: track.album,
-          duration: track.durationSeconds > 0 ? track.duration : null,
-          artUri: track.coverUrl != null ? Uri.tryParse(track.coverUrl!) : null,
-        ),
-      );
+    Uri.parse(track.streamUrl),
+    tag: MediaItem(
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      album: track.album,
+      duration: track.durationSeconds > 0 ? track.duration : null,
+      artUri: track.coverUrl != null ? Uri.tryParse(track.coverUrl!) : null,
+    ),
+  );
 
   @override
   void dispose() {
+    _loadId++;
+    _queue = [];
+    _index = null;
     for (final s in _subs) {
       s.cancel();
     }
