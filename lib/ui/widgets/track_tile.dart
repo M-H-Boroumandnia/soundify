@@ -34,87 +34,110 @@ class TrackTile extends StatelessWidget {
     );
     final textTheme = Theme.of(context).textTheme;
 
-    final secondary = textTheme.bodySmall?.copyWith(color: AppColors.textSecondary);
+    final secondary = textTheme.bodySmall?.copyWith(
+      color: AppColors.textSecondary,
+    );
 
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 6, 8),
-        child: Row(
-          children: [
-            CoverImage(url: track.coverUrl),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AutoText(
-                    track.title,
-                    style: textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: isCurrent ? AppColors.primary : null,
+    return RepaintBoundary(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 6, 8),
+          child: Row(
+            children: [
+              CoverImage(url: track.coverUrl),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AutoText(
+                      track.title,
+                      style: textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isCurrent ? AppColors.primary : null,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: AutoText(
-                          track.album.isEmpty
-                              ? track.artist
-                              : '${track.artist} • ${track.album}',
-                          style: secondary,
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: AutoText(
+                            track.album.isEmpty
+                                ? track.artist
+                                : '${track.artist} • ${track.album}',
+                            style: secondary,
+                          ),
                         ),
-                      ),
-                      Text('  •  ', style: secondary),
-                      Text(
-                        formatSeconds(track.durationSeconds),
-                        textDirection: TextDirection.ltr,
-                        style: secondary?.copyWith(
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                        Text('  •  ', style: secondary),
+                        Text(
+                          formatSeconds(track.durationSeconds),
+                          textDirection: TextDirection.ltr,
+                          style: secondary?.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: isFavorite
+                    ? 'حذف از علاقه‌مندی‌ها'
+                    : 'افزودن به علاقه‌مندی‌ها',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 34,
+                  height: 40,
+                ),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(
+                  isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: isFavorite
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
+                  size: 22,
+                ),
+                onPressed: () => toggleFavorite(context, track),
+              ),
+              PopupMenuButton<String>(
+                padding: EdgeInsets.zero,
+                style: IconButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(28, 40),
+                  fixedSize: const Size(28, 40),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: const Icon(
+                  Icons.more_vert_rounded,
+                  color: AppColors.textSecondary,
+                  size: 22,
+                ),
+                onSelected: (value) {
+                  if (value == 'add_playlist') {
+                    showAddToPlaylistSheet(context, track);
+                  } else {
+                    onExtraAction?.call(value);
+                  }
+                },
+                itemBuilder: (_) => [
+                  menuItem(
+                    'add_playlist',
+                    Icons.playlist_add_rounded,
+                    'افزودن به پلی‌لیست',
                   ),
+                  ...extraActions,
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              tooltip: isFavorite ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 34, height: 40),
-              style: IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-              icon: Icon(
-                isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                color: isFavorite ? AppColors.primary : AppColors.textSecondary,
-                size: 22,
-              ),
-              onPressed: () => toggleFavorite(context, track),
-            ),
-            PopupMenuButton<String>(
-              padding: EdgeInsets.zero,
-              style: IconButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(28, 40),
-                fixedSize: const Size(28, 40),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary, size: 22),
-              onSelected: (value) {
-                if (value == 'add_playlist') {
-                  showAddToPlaylistSheet(context, track);
-                } else {
-                  onExtraAction?.call(value);
-                }
-              },
-              itemBuilder: (_) => [
-                menuItem('add_playlist', Icons.playlist_add_rounded, 'افزودن به پلی‌لیست'),
-                ...extraActions,
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -123,5 +146,7 @@ class TrackTile extends StatelessWidget {
 
 Future<void> toggleFavorite(BuildContext context, Track track) async {
   final error = await context.read<FavoritesProvider>().toggle(track);
-  if (error != null && context.mounted) showMessage(context, error, error: true);
+  if (error != null && context.mounted) {
+    showMessage(context, error, error: true);
+  }
 }
