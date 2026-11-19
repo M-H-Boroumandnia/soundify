@@ -4,6 +4,7 @@
 
 - آدرس پایه API: `https://soundify.easyfound.ir/api/v1`
 - مستندات API: `https://soundify.easyfound.ir/docs`
+- مخزن پروژه: `https://github.com/M-H-Boroumandnia/soundify`
 
 ## پیش‌نیازها
 
