@@ -9,8 +9,8 @@
 
 | ابزار | نسخه |
 | --- | --- |
-| Flutter SDK | 3.4x (کانال stable، Dart 3.14 یا بالاتر) |
-| JDK | 17 |
+| Flutter SDK | 3.50 (کانال stable، Dart 3.14 یا بالاتر) |
+| JDK | 17 یا بالاتر (تست‌شده با 21) |
 | Android SDK | API 36، Build Tools و Platform Tools |
 | دستگاه / شبیه‌ساز | Android 7.0 (API 24) یا بالاتر |
 
@@ -30,6 +30,12 @@ flutter build apk --release --target-platform android-arm64
 ```
 
 فایل خروجی: `build/app/outputs/flutter-apk/app-release.apk`
+
+برای اجرا روی شبیه‌ساز x86_64 نسخه بدون محدودیت معماری ساخته شود:
+
+```bash
+flutter build apk --release
+```
 
 ## ساختار پروژه
 
@@ -79,7 +85,7 @@ lib/
 - مینی‌پلیر در پایین همه صفحات تب‌ها (Navigator تودرتو برای هر تب).
 - پخش در پس‌زمینه و صفحه خاموش با `just_audio_background`.
 - نوتیفیکیشن و صفحه قفل با کاور، نام خواننده و عنوان، و کنترل پخش و جابجایی آهنگ.
-- پلیر تمام‌صفحه با کاور، ویژوالایزر متحرک و اکولایزر واقعی Android (`AndroidEqualizer`).
+- پلیر تمام‌صفحه با کاور، ویژوالایزر متحرک و اکولایزر واقعی Android (`AndroidEqualizer`) با پیش‌تنظیم‌های تخت، تقویت بیس، وکال، تقویت زیر و راک.
 
 ### رابط کاربری
 - Splash Screen با لوگو، Onboarding سه‌مرحله‌ای که فقط در اولین اجرا نمایش داده می‌شود.
