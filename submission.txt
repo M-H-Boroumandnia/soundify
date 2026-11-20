@@ -1,0 +1,13 @@
+تحویل پروژه Soundify
+
+۱. لینک سورس کد (GitHub):
+https://github.com/M-H-Boroumandnia/soundify
+
+۲. لینک فایل نصبی APK (نسخه ریلیز، arm64-v8a):
+https://github.com/M-H-Boroumandnia/soundify/blob/main/output/app-release.apk
+
+۳. لینک فایل README:
+https://github.com/M-H-Boroumandnia/soundify/blob/main/README.md
+
+۴. لینک ویدیو (۲ تا ۳ دقیقه، تست ورود، بیومتریک، پخش موسیقی، پخش پس‌زمینه و نوتیفیکیشن):
+<لینک ویدیو را اینجا قرار دهید>
