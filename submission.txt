@@ -10,4 +10,4 @@ https://github.com/M-H-Boroumandnia/soundify/blob/main/output/app-release.apk
 https://github.com/M-H-Boroumandnia/soundify/blob/main/README.md
 
 ۴. لینک ویدیو (۲ تا ۳ دقیقه، تست ورود، بیومتریک، پخش موسیقی، پخش پس‌زمینه و نوتیفیکیشن):
-<لینک ویدیو را اینجا قرار دهید>
+https://github.com/M-H-Boroumandnia/soundify/blob/main/output/Soundify.mp4
